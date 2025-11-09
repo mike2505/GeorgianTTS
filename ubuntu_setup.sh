@@ -122,7 +122,7 @@ pip install --upgrade pip setuptools wheel
 
 echo ""
 echo "Step 8: Installing PyTorch with CUDA support..."
-pip install torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 torchaudio==2.5.1+cu121 --index-url https://download.pytorch.org/whl/cu121
 
 echo ""
 echo "Step 9: Installing project dependencies..."
