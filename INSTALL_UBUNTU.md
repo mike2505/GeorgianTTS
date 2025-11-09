@@ -93,7 +93,7 @@ pip install --upgrade pip setuptools wheel
 ### 9. Install PyTorch with CUDA
 
 ```bash
-pip install torch==2.6.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
 
 ### 10. Install Project Dependencies
