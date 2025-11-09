@@ -28,7 +28,7 @@ training:
     min_lr: 1.0e-6
   
   mixed_precision: true
-  use_compile: true
+  use_compile: false
 
 data:
   train_csv: "data/processed/train.csv"
