@@ -198,13 +198,14 @@ def train_epoch(rank, model, train_loader, train_sampler, optimizer, warmup_sche
             loss = compute_t3_loss(model, batch, device, rank)
             
             if loss is None:
-                continue
+                loss = torch.tensor(0.0, device=device, requires_grad=True)
             
             loss = loss / grad_accum_steps
             loss.backward()
             
-            total_loss += loss.item() * grad_accum_steps
-            num_batches += 1
+            if loss.item() > 0:
+                total_loss += loss.item() * grad_accum_steps
+                num_batches += 1
             
             if (batch_idx + 1) % grad_accum_steps == 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
