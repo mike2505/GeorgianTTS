@@ -14,6 +14,10 @@ from pathlib import Path
 from tqdm import tqdm
 import json
 from datetime import datetime
+import warnings
+
+warnings.filterwarnings('ignore', category=UserWarning, module='perth')
+warnings.filterwarnings('ignore', message='.*pkg_resources.*')
 
 mp.set_start_method('spawn', force=True)
 
@@ -111,14 +115,6 @@ def compute_t3_loss(t3_model, batch, device):
     text_lengths = batch['text_lengths'].to(device)
     speech_lengths = batch['speech_lengths'].to(device)
     
-    batch_size = text_tokens.shape[0]
-    
-    t3_cond = T3Cond(
-        speaker_emb=speaker_embs,
-        cond_prompt_speech_tokens=None,
-        emotion_adv=0.5 * torch.ones(batch_size, 1, 1, device=device)
-    )
-    
     sot = t3_model.module.hp.start_text_token
     eot = t3_model.module.hp.stop_text_token
     
@@ -127,27 +123,61 @@ def compute_t3_loss(t3_model, batch, device):
     text_lengths = text_lengths + 2
     
     try:
-        output = t3_model(
-            text_tokens=text_tokens,
-            text_token_lens=text_lengths,
-            speech_tokens=speech_tokens[:, :-1],
-            speech_token_lens=speech_lengths - 1,
-            t3_cond=t3_cond,
-            training=True
-        )
+        num_gpus = torch.cuda.device_count()
+        batch_size = text_tokens.shape[0]
+        per_gpu_batch = batch_size // num_gpus
         
-        speech_logits = output.speech_logits
-        targets = speech_tokens[:, 1:]
+        all_losses = []
         
-        loss = F.cross_entropy(
-            speech_logits.reshape(-1, speech_logits.size(-1)),
-            targets.reshape(-1),
-            ignore_index=0
-        )
+        for gpu_idx in range(num_gpus):
+            start_idx = gpu_idx * per_gpu_batch
+            end_idx = start_idx + per_gpu_batch if gpu_idx < num_gpus - 1 else batch_size
+            
+            gpu_device = f'cuda:{gpu_idx}'
+            
+            gpu_text_tokens = text_tokens[start_idx:end_idx].to(gpu_device)
+            gpu_speech_tokens = speech_tokens[start_idx:end_idx].to(gpu_device)
+            gpu_speaker_embs = speaker_embs[start_idx:end_idx].to(gpu_device)
+            gpu_text_lengths = text_lengths[start_idx:end_idx].to(gpu_device)
+            gpu_speech_lengths = speech_lengths[start_idx:end_idx].to(gpu_device)
+            
+            gpu_batch_size = gpu_text_tokens.shape[0]
+            
+            t3_cond = T3Cond(
+                speaker_emb=gpu_speaker_embs,
+                cond_prompt_speech_tokens=None,
+                emotion_adv=0.5 * torch.ones(gpu_batch_size, 1, 1, device=gpu_device)
+            )
+            
+            model_replica = t3_model.module.to(gpu_device)
+            
+            output = model_replica(
+                text_tokens=gpu_text_tokens,
+                text_token_lens=gpu_text_lengths,
+                speech_tokens=gpu_speech_tokens[:, :-1],
+                speech_token_lens=gpu_speech_lengths - 1,
+                t3_cond=t3_cond,
+                training=True
+            )
+            
+            speech_logits = output.speech_logits
+            targets = gpu_speech_tokens[:, 1:]
+            
+            gpu_loss = F.cross_entropy(
+                speech_logits.reshape(-1, speech_logits.size(-1)),
+                targets.reshape(-1),
+                ignore_index=0
+            )
+            
+            all_losses.append(gpu_loss)
         
+        loss = torch.mean(torch.stack(all_losses))
         return loss
+        
     except Exception as e:
         print(f"Error in forward pass: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 

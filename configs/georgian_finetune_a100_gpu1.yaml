@@ -1,5 +1,5 @@
 model:
-  name: "chatterbox_georgian"
+  name: "chatterbox_georgian_gpu1"
   base_model: "multilingual"
   pretrained_path: null
   
@@ -31,7 +31,7 @@ training:
   use_compile: true
 
 data:
-  train_csv: "data/processed/train.csv"
+  train_csv: "data/processed/train_gpu1.csv"
   val_csv: "data/processed/val.csv"
   num_workers: 8
   sample_rate: 24000
@@ -40,13 +40,13 @@ data:
   ref_audio_len_sec: 6
 
 checkpointing:
-  save_dir: "checkpoints"
+  save_dir: "checkpoints/gpu1"
   save_every_n_epochs: 5
   save_best_only: false
   keep_last_n: 3
 
 logging:
-  log_dir: "logs"
+  log_dir: "logs/gpu1"
   log_every_n_steps: 10
   eval_every_n_epochs: 1
   use_wandb: false
@@ -57,9 +57,9 @@ logging:
 validation:
   num_samples: 5
   save_audio: true
-  audio_output_dir: "outputs/validation"
+  audio_output_dir: "outputs/validation/gpu1"
 
-device: "cuda"
-seed: 42
+device: "cuda:1"
+seed: 43
 resume_from: null
 
