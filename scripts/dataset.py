@@ -74,7 +74,14 @@ class GeorgianTTSDataset(Dataset):
             
         except Exception as e:
             print(f"Error processing {audio_path}: {e}")
-            return self.__getitem__((idx + 1) % len(self))
+            return {
+                'text_tokens': torch.zeros(10, dtype=torch.long),
+                'speech_tokens': torch.zeros(10, dtype=torch.long),
+                'speaker_emb': torch.zeros(192),
+                'audio_path': audio_path,
+                'transcript': transcript,
+                'speaker_id': speaker_id
+            }
 
 
 def collate_fn(batch):
@@ -136,7 +143,7 @@ def create_dataloaders(
     s3_tokenizer,
     voice_encoder,
     batch_size=4,
-    num_workers=4,
+    num_workers=0,
     device='cuda'
 ):
     train_dataset = GeorgianTTSDataset(

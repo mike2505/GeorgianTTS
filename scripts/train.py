@@ -7,11 +7,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.multiprocessing as mp
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 from tqdm import tqdm
 import json
 from datetime import datetime
+
+mp.set_start_method('spawn', force=True)
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "chatterbox" / "src"))
 
