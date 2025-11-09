@@ -72,7 +72,7 @@ def setup_model(config, rank):
         for param in t3.parameters():
             param.requires_grad = False
     
-    t3_ddp = DDP(t3, device_ids=[rank], find_unused_parameters=False)
+    t3_ddp = DDP(t3, device_ids=[rank], find_unused_parameters=True)
     
     if rank == 0:
         trainable_params = sum(p.numel() for p in t3.parameters() if p.requires_grad)
