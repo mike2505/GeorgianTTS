@@ -127,7 +127,7 @@ def create_distributed_dataloaders(
     return train_loader, val_loader, train_sampler
 
 
-def compute_t3_loss(t3_model, batch, device):
+def compute_t3_loss(t3_model, batch, device, rank):
     text_tokens = batch['text_tokens'].to(device)
     speech_tokens = batch['speech_tokens'].to(device)
     speaker_embs = batch['speaker_embs'].to(device)
@@ -195,7 +195,7 @@ def train_epoch(rank, model, train_loader, train_sampler, optimizer, warmup_sche
     
     for batch_idx, batch in enumerate(progress_bar):
         try:
-            loss = compute_t3_loss(model, batch, device)
+            loss = compute_t3_loss(model, batch, device, rank)
             
             if loss is None:
                 continue
