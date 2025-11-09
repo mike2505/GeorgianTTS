@@ -118,7 +118,8 @@ def compute_t3_loss(t3_model, batch, device):
     text_tokens = batch['text_tokens'].to(device)
     speech_tokens = batch['speech_tokens'].to(device)
     speaker_embs = batch['speaker_embs'].to(device)
-    text_masks = batch['text_masks'].to(device)
+    text_lengths = batch['text_lengths'].to(device)
+    speech_lengths = batch['speech_lengths'].to(device)
     
     batch_size = text_tokens.shape[0]
     
@@ -133,12 +134,16 @@ def compute_t3_loss(t3_model, batch, device):
     
     text_tokens = F.pad(text_tokens, (1, 0), value=sot)
     text_tokens = F.pad(text_tokens, (0, 1), value=eot)
+    text_lengths = text_lengths + 2
     
     try:
         logits = t3_model.forward(
             text_tokens=text_tokens,
+            text_token_lens=text_lengths,
             speech_tokens=speech_tokens[:, :-1],
-            t3_cond=t3_cond
+            speech_token_lens=speech_lengths - 1,
+            t3_cond=t3_cond,
+            training=True
         )
         
         targets = speech_tokens[:, 1:]
