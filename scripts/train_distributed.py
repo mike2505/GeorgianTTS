@@ -72,7 +72,13 @@ def setup_model(config, rank):
         for param in t3.parameters():
             param.requires_grad = False
     
-    t3_ddp = DDP(t3, device_ids=[rank], find_unused_parameters=True)
+    t3_ddp = DDP(
+        t3, 
+        device_ids=[rank], 
+        find_unused_parameters=True,
+        broadcast_buffers=False,
+        gradient_as_bucket_view=True
+    )
     
     if rank == 0:
         trainable_params = sum(p.numel() for p in t3.parameters() if p.requires_grad)
@@ -194,49 +200,51 @@ def train_epoch(rank, model, train_loader, train_sampler, optimizer, warmup_sche
     optimizer.zero_grad()
     
     for batch_idx, batch in enumerate(progress_bar):
-        try:
-            loss = compute_t3_loss(model, batch, device, rank)
-            
-            if loss is None:
+        with model.no_sync() if (batch_idx + 1) % grad_accum_steps != 0 else torch.cuda.amp.autocast(enabled=False):
+            try:
+                loss = compute_t3_loss(model, batch, device, rank)
+                
+                if loss is None:
+                    loss = torch.tensor(0.0, device=device, requires_grad=True)
+                
+                loss = loss / grad_accum_steps
+                loss.backward()
+                
+                if loss.item() > 0:
+                    total_loss += loss.item() * grad_accum_steps
+                    num_batches += 1
+                
+            except Exception as e:
+                if rank == 0:
+                    print(f"Error in batch {batch_idx}: {e}")
                 loss = torch.tensor(0.0, device=device, requires_grad=True)
-            
-            loss = loss / grad_accum_steps
-            loss.backward()
-            
-            if loss.item() > 0:
-                total_loss += loss.item() * grad_accum_steps
-                num_batches += 1
-            
-            if (batch_idx + 1) % grad_accum_steps == 0:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
-                optimizer.step()
-                
-                if warmup_scheduler and global_step < config['training']['warmup_steps']:
-                    warmup_scheduler.step()
-                elif main_scheduler:
-                    main_scheduler.step()
-                
-                optimizer.zero_grad()
-                global_step += 1
-                
-                if rank == 0 and global_step % config['logging']['log_every_n_steps'] == 0:
-                    lr = optimizer.param_groups[0]['lr']
-                    avg_loss = total_loss / num_batches
-                    
-                    if writer:
-                        writer.add_scalar('train/loss', avg_loss, global_step)
-                        writer.add_scalar('train/lr', lr, global_step)
-                    
-                    if hasattr(progress_bar, 'set_postfix'):
-                        progress_bar.set_postfix({
-                            'loss': f'{avg_loss:.4f}',
-                            'lr': f'{lr:.2e}'
-                        })
+                loss.backward()
         
-        except Exception as e:
-            if rank == 0:
-                print(f"Error in batch {batch_idx}: {e}")
-            continue
+        if (batch_idx + 1) % grad_accum_steps == 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+            optimizer.step()
+            
+            if warmup_scheduler and global_step < config['training']['warmup_steps']:
+                warmup_scheduler.step()
+            elif main_scheduler:
+                main_scheduler.step()
+            
+            optimizer.zero_grad()
+            global_step += 1
+            
+            if rank == 0 and global_step % config['logging']['log_every_n_steps'] == 0:
+                lr = optimizer.param_groups[0]['lr']
+                avg_loss = total_loss / num_batches if num_batches > 0 else 0
+                
+                if writer:
+                    writer.add_scalar('train/loss', avg_loss, global_step)
+                    writer.add_scalar('train/lr', lr, global_step)
+                
+                if hasattr(progress_bar, 'set_postfix'):
+                    progress_bar.set_postfix({
+                        'loss': f'{avg_loss:.4f}',
+                        'lr': f'{lr:.2e}'
+                    })
     
     avg_loss = total_loss / num_batches if num_batches > 0 else 0
     return avg_loss, global_step
