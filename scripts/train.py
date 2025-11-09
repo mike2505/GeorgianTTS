@@ -137,7 +137,7 @@ def compute_t3_loss(t3_model, batch, device):
     text_lengths = text_lengths + 2
     
     try:
-        logits = t3_model.forward(
+        output = t3_model.forward(
             text_tokens=text_tokens,
             text_token_lens=text_lengths,
             speech_tokens=speech_tokens[:, :-1],
@@ -146,10 +146,11 @@ def compute_t3_loss(t3_model, batch, device):
             training=True
         )
         
+        speech_logits = output.speech_logits
         targets = speech_tokens[:, 1:]
         
         loss = F.cross_entropy(
-            logits.reshape(-1, logits.size(-1)),
+            speech_logits.reshape(-1, speech_logits.size(-1)),
             targets.reshape(-1),
             ignore_index=0
         )
