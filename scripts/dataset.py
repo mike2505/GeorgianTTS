@@ -18,8 +18,7 @@ class GeorgianTTSDataset(Dataset):
         max_text_len=512,
         max_speech_len=2048,
         sample_rate=24000,
-        ref_audio_len_sec=6,
-        device='cuda'
+        ref_audio_len_sec=6
     ):
         self.df = pd.read_csv(metadata_csv)
         self.tokenizer = tokenizer
@@ -29,7 +28,6 @@ class GeorgianTTSDataset(Dataset):
         self.max_speech_len = max_speech_len
         self.sample_rate = sample_rate
         self.ref_audio_len = int(ref_audio_len_sec * 16000)
-        self.device = device
         
     def __len__(self):
         return len(self.df)
@@ -143,23 +141,20 @@ def create_dataloaders(
     s3_tokenizer,
     voice_encoder,
     batch_size=4,
-    num_workers=0,
-    device='cuda'
+    num_workers=0
 ):
     train_dataset = GeorgianTTSDataset(
         train_csv,
         tokenizer,
         s3_tokenizer,
-        voice_encoder,
-        device=device
+        voice_encoder
     )
     
     val_dataset = GeorgianTTSDataset(
         val_csv,
         tokenizer,
         s3_tokenizer,
-        voice_encoder,
-        device=device
+        voice_encoder
     )
     
     train_loader = DataLoader(
@@ -168,7 +163,7 @@ def create_dataloaders(
         shuffle=True,
         num_workers=num_workers,
         collate_fn=collate_fn,
-        pin_memory=True
+        pin_memory=False
     )
     
     val_loader = DataLoader(
@@ -177,7 +172,7 @@ def create_dataloaders(
         shuffle=False,
         num_workers=num_workers,
         collate_fn=collate_fn,
-        pin_memory=True
+        pin_memory=False
     )
     
     return train_loader, val_loader

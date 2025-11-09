@@ -294,8 +294,7 @@ def main():
         s3_tokenizer,
         ve,
         batch_size=config['training']['batch_size'],
-        num_workers=config['data']['num_workers'],
-        device=device
+        num_workers=config['data']['num_workers']
     )
     
     print(f"Train batches: {len(train_loader)}")
