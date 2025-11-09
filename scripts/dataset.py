@@ -90,11 +90,15 @@ def collate_fn(batch):
     speech_lengths = []
     
     for item in batch:
-        text_tokens.append(item['text_tokens'])
-        speech_tokens.append(item['speech_tokens'])
-        speaker_embs.append(item['speaker_emb'])
-        text_lengths.append(item['text_tokens'].shape[0])
-        speech_lengths.append(item['speech_tokens'].shape[0])
+        tt = item['text_tokens'].cpu() if item['text_tokens'].is_cuda else item['text_tokens']
+        st = item['speech_tokens'].cpu() if item['speech_tokens'].is_cuda else item['speech_tokens']
+        se = item['speaker_emb'].cpu() if item['speaker_emb'].is_cuda else item['speaker_emb']
+        
+        text_tokens.append(tt)
+        speech_tokens.append(st)
+        speaker_embs.append(se)
+        text_lengths.append(tt.shape[0])
+        speech_lengths.append(st.shape[0])
     
     max_text_len = max(text_lengths)
     max_speech_len = max(speech_lengths)
@@ -104,15 +108,15 @@ def collate_fn(batch):
     text_masks = []
     speech_masks = []
     
-    for i, item in enumerate(batch):
+    for i in range(len(batch)):
         text_pad_len = max_text_len - text_lengths[i]
         speech_pad_len = max_speech_len - speech_lengths[i]
         
         text_tokens_padded.append(
-            F.pad(item['text_tokens'], (0, text_pad_len), value=0)
+            F.pad(text_tokens[i], (0, text_pad_len), value=0)
         )
         speech_tokens_padded.append(
-            F.pad(item['speech_tokens'], (0, speech_pad_len), value=0)
+            F.pad(speech_tokens[i], (0, speech_pad_len), value=0)
         )
         
         text_mask = torch.ones(max_text_len, dtype=torch.bool)
