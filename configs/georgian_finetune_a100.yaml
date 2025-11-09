@@ -10,7 +10,7 @@ model:
 
 training:
   num_epochs: 50
-  batch_size: 24
+  batch_size: 8
   gradient_accumulation_steps: 8
   learning_rate: 5.0e-5
   warmup_steps: 500
@@ -28,12 +28,12 @@ training:
     min_lr: 1.0e-6
   
   mixed_precision: true
-  use_compile: true
+  use_compile: false
 
 data:
   train_csv: "data/processed/train.csv"
   val_csv: "data/processed/val.csv"
-  num_workers: 8
+  num_workers: 0
   sample_rate: 24000
   max_text_len: 512
   max_speech_len: 2048
