@@ -47,6 +47,9 @@ def load_model(checkpoint_path, config_path, device='cuda'):
     checkpoint = torch.load(checkpoint_path, map_location='cpu')
     
     for key in model:
+        if model[key] is None or key not in checkpoint['net']:
+            continue
+            
         state_dict = checkpoint['net'][key]
         
         new_state_dict = {}
@@ -56,6 +59,7 @@ def load_model(checkpoint_path, config_path, device='cuda'):
             else:
                 new_state_dict[param_key] = param_value
         
+        print(f"Loading {key}...")
         model[key].load_state_dict(new_state_dict, strict=False)
         model[key] = model[key].to(device)
         model[key].eval()
