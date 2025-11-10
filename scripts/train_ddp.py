@@ -4,6 +4,13 @@ import yaml
 import argparse
 import random
 import numpy as np
+import warnings
+
+warnings.filterwarnings('ignore', category=UserWarning, module='perth')
+warnings.filterwarnings('ignore', message='.*pkg_resources.*')
+warnings.filterwarnings('ignore', category=FutureWarning, module='diffusers')
+warnings.filterwarnings('ignore', message='.*weights_only.*')
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
