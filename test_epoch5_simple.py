@@ -73,19 +73,18 @@ print(f"Tokens: {tokens.shape}")
 print("Generating...")
 with torch.no_grad():
     input_lengths = torch.LongTensor([tokens.shape[-1]]).to(device)
+    text_mask = length_to_mask(input_lengths).to(device)
     
     style = torch.randn(1, 256).to(device)
     
-    mel_output = model['decoder'].inference(
-        x=tokens.float(),
-        style=style,
-    )
+    t_en = model['text_encoder'](tokens, input_lengths, text_mask)
     
-    from styletts2.Modules.hifigan import Generator
-    if isinstance(model['decoder'], Generator):
-        wav = mel_output.squeeze().cpu().numpy()
-    else:
-        wav = mel_output.squeeze().cpu().numpy()
+    asr = (t_en.transpose(-1, -2) @ torch.randn(tokens.shape[-1], 100).to(device)).transpose(-1, -2)
+    
+    F0_fake = torch.randn(1, 100, 1).to(device)
+    N_fake = torch.randn(1, 100, 1).to(device)
+    
+    wav = model['decoder'](asr, F0_fake, N_fake, style).squeeze().cpu().numpy()
 
 print(f"Generated wav shape: {wav.shape}")
 torchaudio.save('test_simple.wav', torch.from_numpy(wav).unsqueeze(0), 24000)
