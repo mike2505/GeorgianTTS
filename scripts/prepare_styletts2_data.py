@@ -3,7 +3,9 @@ import argparse
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "styletts2"))
+styletts2_path = Path(__file__).parent.parent / "styletts2"
+sys.path.insert(0, str(styletts2_path))
+
 from text_utils_georgian import process_georgian_text
 
 
