@@ -44,7 +44,16 @@ def load_model(checkpoint_path, config_path, device='cuda'):
     checkpoint = torch.load(checkpoint_path, map_location='cpu')
     
     for key in model:
-        model[key].load_state_dict(checkpoint['net'][key])
+        state_dict = checkpoint['net'][key]
+        
+        new_state_dict = {}
+        for param_key, param_value in state_dict.items():
+            if param_key.startswith('module.'):
+                new_state_dict[param_key[7:]] = param_value
+            else:
+                new_state_dict[param_key] = param_value
+        
+        model[key].load_state_dict(new_state_dict)
         model[key] = model[key].to(device)
         model[key].eval()
     
