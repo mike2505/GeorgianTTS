@@ -51,7 +51,9 @@ def generate_speech_direct(
         print("Using default speaker embedding")
         speaker_emb = torch.zeros(1, 192, device=model.device)
     
-    text_tokens = model.tokenizer.encode(text, return_tensors='pt').to(model.device)
+    text_tokens = model.tokenizer.text_to_tokens(text).to(model.device)
+    print(f"Text tokens shape: {text_tokens.shape}")
+    print(f"Text tokens (first 20): {text_tokens.flatten()[:20].tolist()}")
     
     print("Generating speech tokens...")
     with torch.no_grad():
