@@ -13,6 +13,7 @@ from munch import Munch
 from models import *
 from utils import *
 from text_utils import TextCleaner
+from Utils.PLBERT.util import load_plbert
 
 GEORGIAN_TO_ROMAN = {
     'ა': 'a', 'ბ': 'b', 'გ': 'g', 'დ': 'd', 'ე': 'e', 'ვ': 'v', 'ზ': 'z',
