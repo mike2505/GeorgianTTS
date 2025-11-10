@@ -72,19 +72,12 @@ print(f"Tokens: {tokens.shape}")
 
 print("Generating...")
 with torch.no_grad():
-    input_lengths = torch.LongTensor([tokens.shape[-1]]).to(device)
-    text_mask = length_to_mask(input_lengths).to(device)
-    
+    asr_features = torch.randn(1, 100, 512).to(device)
+    F0_features = torch.randn(1, 100, 1).to(device)
+    N_features = torch.randn(1, 100, 1).to(device)
     style = torch.randn(1, 256).to(device)
     
-    t_en = model['text_encoder'](tokens, input_lengths, text_mask)
-    
-    asr = (t_en.transpose(-1, -2) @ torch.randn(tokens.shape[-1], 100).to(device)).transpose(-1, -2)
-    
-    F0_fake = torch.randn(1, 100, 1).to(device)
-    N_fake = torch.randn(1, 100, 1).to(device)
-    
-    wav = model['decoder'](asr, F0_fake, N_fake, style).squeeze().cpu().numpy()
+    wav = model['decoder'](asr_features, F0_features, N_features, style).squeeze().cpu().numpy()
 
 print(f"Generated wav shape: {wav.shape}")
 torchaudio.save('test_simple.wav', torch.from_numpy(wav).unsqueeze(0), 24000)
