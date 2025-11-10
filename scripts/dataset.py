@@ -48,7 +48,7 @@ class GeorgianTTSDataset(Dataset):
             ref_wav_16k = librosa.resample(wav, orig_sr=self.sample_rate, target_sr=16000)
             ref_wav_16k = ref_wav_16k[:self.ref_audio_len]
             
-            text_tokens = self.tokenizer.text_to_tokens(transcript)
+            text_tokens = self.tokenizer.text_to_tokens(transcript, language_id='ka')
             
             if text_tokens.shape[-1] > self.max_text_len:
                 text_tokens = text_tokens[:, :self.max_text_len]

@@ -234,6 +234,54 @@ class ChineseCangjieConverter:
         return "".join(output)
 
 
+def georgian_to_roman(text: str) -> str:
+    """
+    Convert Georgian text to phonetically accurate romanized form.
+    Preserves all phonetic distinctions including ejectives.
+    Based on Georgian phonology and IPA transcription.
+    """
+    GEORGIAN_TO_ROMAN = {
+        'ა': 'a',
+        'ბ': 'b',
+        'გ': 'g',
+        'დ': 'd',
+        'ე': 'e',
+        'ვ': 'v',
+        'ზ': 'z',
+        'თ': 'th',
+        'ი': 'i',
+        'კ': 'k\'',
+        'ლ': 'l',
+        'მ': 'm',
+        'ნ': 'n',
+        'ო': 'o',
+        'პ': 'p\'',
+        'ჟ': 'zh',
+        'რ': 'r',
+        'ს': 's',
+        'ტ': 't\'',
+        'უ': 'u',
+        'ფ': 'ph',
+        'ქ': 'kh',
+        'ღ': 'gh',
+        'ყ': 'q\'',
+        'შ': 'sh',
+        'ჩ': 'ch\'',
+        'ც': 'ts\'',
+        'ძ': 'dz',
+        'წ': 'tsh',
+        'ჭ': 'chh',
+        'ხ': 'kx',
+        'ჯ': 'j',
+        'ჰ': 'h',
+    }
+    
+    result = []
+    for char in text:
+        result.append(GEORGIAN_TO_ROMAN.get(char, char))
+    return ''.join(result)
+
+
 def add_russian_stress(text: str) -> str:
     """Russian text normalization: adds stress marks to Russian text."""
     global _russian_stresser
@@ -296,6 +344,8 @@ class MTLTokenizer:
             txt = korean_normalize(txt)
         elif language_id == 'ru':
             txt = add_russian_stress(txt)
+        elif language_id == 'ka':
+            txt = georgian_to_roman(txt)
         
         # Prepend language token
         if language_id:
