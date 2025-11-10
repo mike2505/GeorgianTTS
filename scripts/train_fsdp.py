@@ -162,8 +162,8 @@ def compute_t3_loss(t3_model, batch, device):
         emotion_adv=0.5 * torch.ones(batch_size, 1, 1, device=device)
     )
     
-    sot = t3_model.module.hp.start_text_token
-    eot = t3_model.module.hp.stop_text_token
+    sot = t3_model.hp.start_text_token
+    eot = t3_model.hp.stop_text_token
     
     text_tokens = F.pad(text_tokens, (1, 0), value=sot)
     text_tokens = F.pad(text_tokens, (0, 1), value=eot)
@@ -178,7 +178,11 @@ def compute_t3_loss(t3_model, batch, device):
         training=True
     )
     
-    speech_logits = output.speech_logits
+    if isinstance(output, dict):
+        speech_logits = output['speech_logits']
+    else:
+        speech_logits = output.speech_logits
+    
     targets = speech_tokens[:, 1:]
     
     loss = F.cross_entropy(
@@ -327,7 +331,7 @@ def train_worker(rank, world_size, config_path, resume_from):
         if rank == 0:
             print(f"Resuming from {resume_from}")
         checkpoint = torch.load(resume_from, map_location=f'cuda:{rank}')
-        t3_fsdp.module.load_state_dict(checkpoint['model_state_dict'])
+        t3_fsdp.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch'] + 1
         global_step = checkpoint['global_step']
