@@ -81,7 +81,8 @@ def setup_model(config, rank):
         device_ids=[rank],
         find_unused_parameters=True,
         broadcast_buffers=False,
-        gradient_as_bucket_view=True
+        gradient_as_bucket_view=True,
+        static_graph=True
     )
     
     if rank == 0:
