@@ -75,23 +75,39 @@ def generate(model, text, device='cuda'):
     print(f"Romanized: {romanized}")
     
     tokens = textclenaer(romanized)
+    tokens.insert(0, 0)
     tokens = torch.LongTensor(tokens).unsqueeze(0).to(device)
     input_lengths = torch.LongTensor([tokens.shape[-1]]).to(device)
     
     with torch.no_grad():
-        mask = length_to_mask(input_lengths).to(device)
+        text_mask = length_to_mask(input_lengths).to(device)
         
-        ppgs, s2s_pred, s2s_attn = model.text_aligner(
-            model.text_encoder(tokens, input_lengths, None)[0],
-            mask,
-            tokens
-        )
+        t_en = model['text_encoder'](tokens, input_lengths, text_mask)
+        bert_dur = model['bert'](tokens, attention_mask=(~text_mask).int())
+        d_en = model['bert_encoder'](bert_dur).transpose(-1, -2)
         
-        s_pred = model.style_encoder(None, tokens, input_lengths)
+        s_pred = torch.randn((1, 256)).to(device)
         
-        mel = model.predictor.text_encoder(tokens, input_lengths, s_pred)
+        d = model['predictor'].text_encoder(d_en, s_pred, input_lengths, text_mask)
         
-        wav = model.decoder(mel[0], s_pred).squeeze().cpu().numpy()
+        x, _ = model['predictor'].lstm(d)
+        duration = model['predictor'].duration_proj(x)
+        duration = torch.sigmoid(duration).sum(axis=-1)
+        pred_dur = torch.round(duration.squeeze()).clamp(min=1)
+        
+        pred_aln_trg = torch.zeros(input_lengths, int(pred_dur.sum().data))
+        c_frame = 0
+        for i in range(pred_aln_trg.size(0)):
+            pred_aln_trg[i, c_frame:c_frame + int(pred_dur[i].data)] = 1
+            c_frame += int(pred_dur[i].data)
+        
+        en = d.transpose(-1, -2) @ pred_aln_trg.unsqueeze(0).to(device)
+        
+        F0_pred, N_pred = model['predictor'].F0Ntrain(en, s_pred)
+        
+        asr = t_en @ pred_aln_trg.unsqueeze(0).to(device)
+        
+        wav = model['decoder'](asr, F0_pred, N_pred, s_pred).squeeze().cpu().numpy()
     
     return wav
 
