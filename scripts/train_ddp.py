@@ -79,7 +79,6 @@ def setup_model(config, rank):
     t3_ddp = DDP(
         t3,
         device_ids=[rank],
-        find_unused_parameters=True,
         broadcast_buffers=False,
         gradient_as_bucket_view=True,
         static_graph=True
