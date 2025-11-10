@@ -1,87 +1,103 @@
-# Georgian TTS - Chatterbox Fine-tuning
+# Georgian TTS with StyleTTS2
 
-Fine-tuning [Chatterbox TTS](https://github.com/resemble-ai/chatterbox) for Georgian language.
+State-of-the-art Text-to-Speech for Georgian language using StyleTTS2.
+
+## Why StyleTTS2?
+
+- **Best Quality**: Human-level naturalness and prosody
+- **Multi-GPU Ready**: Uses Accelerate library (no DDP issues)
+- **Proven**: Works on 2-4x A100 GPUs efficiently
+- **Georgian Support**: Custom phonetic romanization
+
+## Setup
+
+### 1. Prepare Data
+
+Run the automated setup:
+
+```bash
+./setup_styletts2.sh
+```
+
+This will:
+- Convert your Common Voice data to StyleTTS2 format
+- Create train/val/OOD text files
+- Apply Georgian romanization
+
+### 2. Download Pretrained Models
+
+StyleTTS2 needs pretrained modules. Download from:
+- **LibriTTS checkpoint**: https://huggingface.co/yl4579/StyleTTS2-LibriTTS/tree/main
+- Extract to `Models/LibriTTS/`
+
+Or manually download:
+```bash
+mkdir -p Models/LibriTTS
+cd Models/LibriTTS
+wget https://huggingface.co/yl4579/StyleTTS2-LibriTTS/resolve/main/epoch_2nd_00100.pth
+wget https://huggingface.co/yl4579/StyleTTS2-LibriTTS/resolve/main/epoch_1st_00080.pth
+cd ../..
+```
+
+### 3. Train
+
+**Single GPU:**
+```bash
+accelerate launch --mixed_precision=fp16 --num_processes=1 train_georgian_styletts2.py --config configs/styletts2_georgian.yml
+```
+
+**Dual GPU (2x A100):**
+```bash
+accelerate launch --mixed_precision=fp16 --num_processes=2 train_georgian_styletts2.py --config configs/styletts2_georgian.yml
+```
+
+## Georgian Romanization
+
+Georgian characters are converted to phonetically accurate romanizations:
+
+- Ejectives: კ→k', პ→p', ტ→t', ქ→q', ჩ→ch', ც→ts'
+- Aspirated: თ→th, ფ→ph, ხ→kh
+- Affricates: შ→sh, ჟ→zh, წ→tsh, ჭ→chh
+- Others: All unique mappings (no collisions)
+
+Example:
+- `გამარჯობა` → `gamarjoba`
+- `კარგად ხართ` → `k'argad kharth`
+
+## Data Format
+
+StyleTTS2 expects:
+```
+path/to/audio.wav|romanized_text|speaker_id
+```
+
+All conversions are handled automatically by the setup script.
+
+## Performance
+
+**Expected on 2x A100:**
+- **Training speed**: ~5-10 it/s
+- **1 epoch**: ~20-30 minutes
+- **Total (50 epochs)**: ~1-2 days
 
 ## Project Structure
 
 ```
 GeorgianTTS/
-├── chatterbox/              # Original Chatterbox repository
-├── data/                    # Dataset directory
-│   ├── raw/                 # Raw audio and transcripts
-│   ├── processed/           # Preprocessed data
-│   └── metadata.csv         # Dataset metadata
-├── checkpoints/             # Model checkpoints
-├── logs/                    # Training logs
-├── configs/                 # Training configurations
-├── scripts/                 # Training and preprocessing scripts
-├── outputs/                 # Generated audio samples
-└── requirements.txt         # Python dependencies
+├── data/processed/          # Your Common Voice data
+├── styletts2/              # StyleTTS2 codebase
+├── Data/                   # StyleTTS2 data lists
+├── Models/                 # Pretrained models
+├── configs/                # Training configs
+├── scripts/                # Data preparation
+└── logs/                   # Training logs
 ```
 
-## Setup
+## Original Dataset
 
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-cd chatterbox && pip install -e . && cd ..
-```
+Common Voice Georgian: 89k samples, ~150 hours
 
-2. Prepare your dataset:
-   - Place audio files in `data/raw/audio/`
-   - Place transcripts in `data/raw/transcripts/`
+## Credits
 
-3. Preprocess the data:
-```bash
-python scripts/preprocess_data.py --input_dir data/raw --output_dir data/processed
-```
-
-4. Start training:
-```bash
-python scripts/train.py --config configs/georgian_finetune.yaml
-```
-
-## Dataset Format
-
-Your dataset should contain:
-- Audio files: `.wav`, `.mp3`, or `.flac` (16kHz or 24kHz recommended)
-- Transcripts: `.txt` files with matching filenames or a single `metadata.csv`
-
-### Metadata CSV format:
-```csv
-audio_path,transcript,speaker_id,duration
-data/raw/audio/file1.wav,"Georgian text here",speaker_001,3.5
-data/raw/audio/file2.wav,"More Georgian text",speaker_001,4.2
-```
-
-## Training Configuration
-
-Edit `configs/georgian_finetune.yaml` to customize:
-- Batch size
-- Learning rate
-- Number of epochs
-- Model components to fine-tune
-- Data augmentation settings
-
-## Inference
-
-After training, generate speech with:
-```bash
-python scripts/inference.py \
-    --checkpoint checkpoints/best_model.pt \
-    --text "Georgian text to synthesize" \
-    --output outputs/sample.wav
-```
-
-## Model Architecture
-
-Chatterbox uses:
-- **T3**: 0.5B parameter Llama-based text-to-speech token model
-- **S3Gen**: Token-to-audio generator with flow matching
-- **Voice Encoder**: Speaker embedding extraction
-
-For Georgian fine-tuning, we adapt:
-1. Text tokenizer for Georgian characters
-2. T3 model for Georgian phonetics
-3. Optional: Voice encoder for Georgian speaker characteristics
-
+- **StyleTTS2**: https://github.com/yl4579/StyleTTS2
+- **Common Voice**: Mozilla Foundation
