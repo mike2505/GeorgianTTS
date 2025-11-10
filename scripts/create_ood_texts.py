@@ -2,12 +2,28 @@ import pandas as pd
 import argparse
 import random
 from pathlib import Path
-import sys
+import re
 
-styletts2_path = Path(__file__).parent.parent / "styletts2"
-sys.path.insert(0, str(styletts2_path))
+GEORGIAN_TO_ROMAN = {
+    'ა': 'a', 'ბ': 'b', 'გ': 'g', 'დ': 'd', 'ე': 'e', 'ვ': 'v', 'ზ': 'z',
+    'თ': 'th', 'ი': 'i', 'კ': "k'", 'ლ': 'l', 'მ': 'm', 'ნ': 'n', 'ო': 'o',
+    'პ': "p'", 'ჟ': 'zh', 'რ': 'r', 'ს': 's', 'ტ': "t'", 'უ': 'u', 'ფ': 'ph',
+    'ქ': "q'", 'ღ': 'gh', 'ყ': 'qh', 'შ': 'sh', 'ჩ': "ch'", 'ც': "ts'",
+    'ძ': 'dz', 'წ': 'tsh', 'ჭ': 'chh', 'ხ': 'kh', 'ჯ': 'j', 'ჰ': 'h',
+}
 
-from text_utils_georgian import process_georgian_text
+def georgian_to_roman(text):
+    result = []
+    for char in text:
+        result.append(GEORGIAN_TO_ROMAN.get(char, char))
+    return ''.join(result)
+
+def process_georgian_text(text):
+    text = text.strip()
+    text = re.sub(r'\s+', ' ', text)
+    text = georgian_to_roman(text)
+    text = text.lower()
+    return text
 
 
 def create_ood_texts(val_csv, output_file, num_samples=1000):
