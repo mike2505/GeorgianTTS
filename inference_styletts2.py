@@ -9,87 +9,96 @@ import torch
 import torchaudio
 import yaml
 from munch import Munch
+import numpy as np
 
 from models import *
 from Utils.PLBERT.util import load_plbert
+from text_utils import TextCleaner
 
+GEORGIAN_TO_ROMAN = {
+    'ა': 'a', 'ბ': 'b', 'გ': 'g', 'დ': 'd', 'ე': 'e', 'ვ': 'v', 'ზ': 'z',
+    'თ': 'th', 'ი': 'i', 'კ': "kk", 'ლ': 'l', 'მ': 'm', 'ნ': 'n', 'ო': 'o',
+    'პ': "pp", 'ჟ': 'zh', 'რ': 'r', 'ს': 's', 'ტ': "tt", 'უ': 'u', 'ფ': 'ph',
+    'ქ': "qq", 'ღ': 'gh', 'ყ': 'qh', 'შ': 'sh', 'ჩ': "chh", 'ც': "tss",
+    'ძ': 'dz', 'წ': 'tsh', 'ჭ': 'chq', 'ხ': 'kh', 'ჯ': 'j', 'ჰ': 'h',
+}
 
-def load_checkpoint(checkpoint_path, config_path, device='cuda'):
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
-    
-    config = Munch.fromDict(config)
-    
-    plbert = load_plbert(config.PLBERT_dir)
-    
-    model_params = Munch.fromDict(config.model_params)
-    model = build_model(model_params, None, None, plbert)
-    
-    checkpoint = torch.load(checkpoint_path, map_location='cpu')
-    model.load_state_dict(checkpoint['net'])
-    
-    model = model.to(device)
-    model.eval()
-    
-    return model, config
-
-
-def process_georgian_text(text):
-    GEORGIAN_TO_ROMAN = {
-        'ა': 'a', 'ბ': 'b', 'გ': 'g', 'დ': 'd', 'ე': 'e', 'ვ': 'v', 'ზ': 'z',
-        'თ': 'th', 'ი': 'i', 'კ': "kk", 'ლ': 'l', 'მ': 'm', 'ნ': 'n', 'ო': 'o',
-        'პ': "pp", 'ჟ': 'zh', 'რ': 'r', 'ს': 's', 'ტ': "tt", 'უ': 'u', 'ფ': 'ph',
-        'ქ': "qq", 'ღ': 'gh', 'ყ': 'qh', 'შ': 'sh', 'ჩ': "chh", 'ც': "tss",
-        'ძ': 'dz', 'წ': 'tsh', 'ჭ': 'chq', 'ხ': 'kh', 'ჯ': 'j', 'ჰ': 'h',
-    }
+def georgian_to_roman(text):
     result = []
     for char in text:
         result.append(GEORGIAN_TO_ROMAN.get(char, char))
     return ''.join(result).lower()
 
 
-def generate_speech(model, text, output_path='output.wav', device='cuda'):
-    from text_utils import TextCleaner
+def load_model(checkpoint_path, config_path, device='cuda'):
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
     
+    config = Munch.fromDict(config)
+    model_params = Munch.fromDict(config.model_params)
+    
+    plbert = load_plbert(config.PLBERT_dir)
+    
+    model = build_model(model_params, None, None, plbert)
+    
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+    
+    for key in model:
+        model[key].load_state_dict(checkpoint['net'][key])
+        model[key] = model[key].to(device)
+        model[key].eval()
+    
+    return model, config
+
+
+def generate(model, text, device='cuda'):
     textclenaer = TextCleaner()
     
-    text = process_georgian_text(text)
-    print(f"Romanized: {text}")
+    romanized = georgian_to_roman(text)
+    print(f"Input: {text}")
+    print(f"Romanized: {romanized}")
     
-    tokens = textclenaer(text)
+    tokens = textclenaer(romanized)
     tokens = torch.LongTensor(tokens).unsqueeze(0).to(device)
+    input_lengths = torch.LongTensor([tokens.shape[-1]]).to(device)
     
     with torch.no_grad():
-        input_lengths = torch.LongTensor([tokens.shape[-1]]).to(device)
+        mask = length_to_mask(input_lengths).to(device)
+        
+        ppgs, s2s_pred, s2s_attn = model.text_aligner(
+            model.text_encoder(tokens, input_lengths, None)[0],
+            mask,
+            tokens
+        )
         
         s_pred = model.style_encoder(None, tokens, input_lengths)
         
-        wav = model.decoder(
-            model.predictor.text_encoder(tokens, input_lengths, s_pred)[0],
-            s_pred
-        ).squeeze().cpu()
+        mel = model.predictor.text_encoder(tokens, input_lengths, s_pred)
+        
+        wav = model.decoder(mel[0], s_pred).squeeze().cpu().numpy()
     
-    torchaudio.save(output_path, wav.unsqueeze(0), 24000)
-    print(f"Saved to {output_path}")
+    return wav
 
 
 if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--checkpoint', type=str, required=True, help='Model checkpoint')
-    parser.add_argument('--config', type=str, required=True, help='Config file')
-    parser.add_argument('--text', type=str, required=True, help='Georgian text')
-    parser.add_argument('--output', type=str, default='output_georgian.wav', help='Output file')
-    parser.add_argument('--device', type=str, default='cuda:1', help='Device')
+    parser.add_argument('--checkpoint', type=str, required=True)
+    parser.add_argument('--config', type=str, required=True)
+    parser.add_argument('--text', type=str, default='გამარჯობა, როგორ ხართ? მე ვარ ხელოვნური ინტელექტი.')
+    parser.add_argument('--output', type=str, default='output_georgian.wav')
+    parser.add_argument('--device', type=str, default='cuda:1')
     
     args = parser.parse_args()
     
     print("Loading model...")
-    model, config = load_checkpoint(args.checkpoint, args.config, args.device)
+    model, config = load_model(args.checkpoint, args.config, args.device)
     
     print("Generating speech...")
-    generate_speech(model, args.text, args.output, args.device)
+    wav = generate(model, args.text, args.device)
+    
+    print(f"Saving to {args.output}...")
+    torchaudio.save(args.output, torch.from_numpy(wav).unsqueeze(0), 24000)
     
     print("Done!")
-
