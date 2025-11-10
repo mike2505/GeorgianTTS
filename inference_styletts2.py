@@ -14,6 +14,7 @@ import numpy as np
 from models import *
 from Utils.PLBERT.util import load_plbert
 from text_utils import TextCleaner
+from utils import *
 
 GEORGIAN_TO_ROMAN = {
     'ა': 'a', 'ბ': 'b', 'გ': 'g', 'დ': 'd', 'ე': 'e', 'ვ': 'v', 'ზ': 'z',
@@ -37,9 +38,11 @@ def load_model(checkpoint_path, config_path, device='cuda'):
     config = Munch.fromDict(config)
     model_params = Munch.fromDict(config.model_params)
     
+    text_aligner = load_ASR_models(config.ASR_path, config.ASR_config)
+    pitch_extractor = load_F0_models(config.F0_path)
     plbert = load_plbert(config.PLBERT_dir)
     
-    model = build_model(model_params, None, None, plbert)
+    model = build_model(model_params, text_aligner, pitch_extractor, plbert)
     
     checkpoint = torch.load(checkpoint_path, map_location='cpu')
     
@@ -53,7 +56,7 @@ def load_model(checkpoint_path, config_path, device='cuda'):
             else:
                 new_state_dict[param_key] = param_value
         
-        model[key].load_state_dict(new_state_dict)
+        model[key].load_state_dict(new_state_dict, strict=False)
         model[key] = model[key].to(device)
         model[key].eval()
     
@@ -95,7 +98,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--checkpoint', type=str, required=True)
     parser.add_argument('--config', type=str, required=True)
-    parser.add_argument('--text', type=str, default='გამარჯობა, როგორ ხართ? მე ვარ ხელოვნური ინტელექტი.')
+    parser.add_argument('--text', type=str, default='გამარჯობა, როგორ ხართ? მე ვარ ხელოვნური ინტელექტი და ვსაუბრობ ქართულად. თბილისი არის საქართველოს დედაქალაქი.')
     parser.add_argument('--output', type=str, default='output_georgian.wav')
     parser.add_argument('--device', type=str, default='cuda:1')
     
