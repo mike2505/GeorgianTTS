@@ -1,0 +1,69 @@
+log_dir: "logs/styletts2"
+first_stage_path: "Models/LibriTTS/epoch_1st_00080.pth"
+save_freq: 5
+log_interval: 10
+device: "cuda"
+epochs_1st: 100
+epochs_2nd: 50
+batch_size: 16
+max_len: 400
+
+F0_path: "Utils/JDC/bst.t7"
+ASR_config: "Utils/ASR/config.yml"
+ASR_path: "Utils/ASR/epoch_00080.pth"
+PLBERT_dir: "Utils/PLBERT/"
+
+data_params:
+  train_data: "Data/train_georgian.txt"
+  val_data: "Data/val_georgian.txt"
+  root_path: "data/processed/audio"
+  OOD_data: "Data/OOD_texts_georgian.txt"
+  min_length: 50
+  max_samples: null
+  
+preprocess_params:
+  sr: 24000
+  spect_params:
+    n_fft: 2048
+    win_length: 1200
+    hop_length: 300
+  
+model_params:
+  multispeaker: true
+  dim_in: 64
+  hidden_dim: 512
+  max_conv_dim: 512
+  n_layer: 3
+  n_mels: 80
+  n_token: 178
+  
+  F0_channel: 512
+  decoder_dim: 64
+  
+  bert_hidden_dim: 768
+  
+  style_dim: 128
+  
+  diffusion:
+    embedding_mask_proba: 0.1
+    
+  unconditional_prob: 0.1
+  
+loss_params:
+  lambda_mel: 5.0
+  lambda_gen: 1.0
+  lambda_slm: 1.0
+  
+  lambda_mono: 0.0
+  lambda_s2s: 0.0
+  
+  joint_epoch: 100
+  
+  diff_epoch: 0
+  
+  TMA_epoch: 50
+
+optimizer_params:
+  lr: 0.0001
+  bert_lr: 0.00001
+
