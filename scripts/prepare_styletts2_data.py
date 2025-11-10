@@ -31,6 +31,11 @@ def prepare_styletts2_data(input_csv, output_file, audio_base_dir):
     
     print(f"Found {len(df)} samples")
     
+    unique_speakers = df['speaker_id'].unique()
+    speaker_to_id = {speaker: idx for idx, speaker in enumerate(unique_speakers)}
+    
+    print(f"Found {len(unique_speakers)} unique speakers")
+    
     lines = []
     skipped = 0
     
@@ -48,7 +53,9 @@ def prepare_styletts2_data(input_csv, output_file, audio_base_dir):
             
             abs_audio_path = Path(audio_base_dir) / Path(audio_path).name
             
-            line = f"{abs_audio_path}|{processed_text}|{speaker_id}"
+            speaker_int_id = speaker_to_id[speaker_id]
+            
+            line = f"{abs_audio_path}|{processed_text}|{speaker_int_id}"
             lines.append(line)
             
         except Exception as e:
