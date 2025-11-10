@@ -86,7 +86,7 @@ def setup_model(config, rank):
     
     t3_fsdp = FSDP(
         t3,
-        sharding_strategy=ShardingStrategy.FULL_SHARD,
+        sharding_strategy=ShardingStrategy.SHARD_GRAD_OP,
         mixed_precision=mixed_precision_policy,
         device_id=rank,
         use_orig_params=True,
