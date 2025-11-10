@@ -18,11 +18,12 @@ def load_checkpoint(checkpoint_path, config_path, device='cuda'):
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     
-    config = Munch(config)
+    config = Munch.fromDict(config)
     
     plbert = load_plbert(config.PLBERT_dir)
     
-    model = build_model(Munch(config.model_params), None, None, plbert)
+    model_params = Munch.fromDict(config.model_params)
+    model = build_model(model_params, None, None, plbert)
     
     checkpoint = torch.load(checkpoint_path, map_location='cpu')
     model.load_state_dict(checkpoint['net'])
