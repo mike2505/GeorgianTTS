@@ -7,7 +7,7 @@ epochs_1st: 0
 epochs_2nd: 50
 batch_size: 4
 max_len: 250
-pretrained_model: "logs/styletts2/epoch_1st_00040.pth"
+pretrained_model: "/root/GeorgianTTS/logs/styletts2/epoch_1st_00040.pth"
 second_stage_load_pretrained: false
 load_only_params: true
 
