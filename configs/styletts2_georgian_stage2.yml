@@ -8,8 +8,8 @@ epochs_2nd: 50
 batch_size: 4
 max_len: 250
 pretrained_model: "logs/styletts2/epoch_1st_00040.pth"
-second_stage_load_pretrained: true
-load_only_params: false
+second_stage_load_pretrained: false
+load_only_params: true
 
 F0_path: "Utils/JDC/bst.t7"
 ASR_config: "Utils/ASR/config.yml"
