@@ -1,6 +1,6 @@
 log_dir: "logs/styletts2_stage2"
 first_stage_path: "logs/styletts2/epoch_1st_00040.pth"
-save_freq: 5
+save_freq: 1
 log_interval: 10
 device: "cuda"
 epochs_1st: 0
