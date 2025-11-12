@@ -7,9 +7,9 @@ epochs_1st: 0
 epochs_2nd: 50
 batch_size: 12
 max_len: 180
-pretrained_model: "/root/GeorgianTTS/logs/styletts2/epoch_1st_00040.pth"
-second_stage_load_pretrained: false
-load_only_params: true
+pretrained_model: "/root/GeorgianTTS/logs/styletts2_stage2/epoch_2nd_00009.pth"
+second_stage_load_pretrained: true
+load_only_params: false
 
 F0_path: "Utils/JDC/bst.t7"
 ASR_config: "Utils/ASR/config.yml"
