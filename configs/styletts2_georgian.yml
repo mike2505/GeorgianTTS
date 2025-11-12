@@ -5,7 +5,7 @@ log_interval: 10
 device: "cuda"
 epochs_1st: 100
 epochs_2nd: 50
-batch_size: 32
+batch_size: 24
 max_len: 350
 pretrained_model: ""
 second_stage_load_pretrained: false
