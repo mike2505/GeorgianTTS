@@ -7,7 +7,7 @@ epochs_1st: 100
 epochs_2nd: 50
 batch_size: 24
 max_len: 350
-pretrained_model: ""
+pretrained_model: "logs/styletts2/epoch_1st_00050.pth"
 second_stage_load_pretrained: false
 load_only_params: false
 
